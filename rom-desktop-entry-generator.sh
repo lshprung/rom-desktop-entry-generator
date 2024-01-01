@@ -1,5 +1,9 @@
 #!/usr/bin/env sh
 
+# Technical variables
+STDOUT_LOG=/dev/stdout
+STDERR_LOG=/dev/stderr
+
 # BASEDIR is used to treat this script as a portable application
 BASEDIR="$(dirname "$0")"
 SCRIPTNAME="$(basename "$0" .sh)"
@@ -16,28 +20,28 @@ build_desktop_file() {
 	SYSTEM="$3"
 	OUTPUT="$DESKTOP_ENTRY_OUTPUT_DIR/$SYSTEM/${SCRIPTNAME}_${SYSTEM}_${NAME}.desktop"
 
-	echo "Building $NAME"
+	echo "Building $NAME" >> "$STDOUT_LOG"
 
 	# Check validity
 	if [ -z "$NAME" ]; then
-		echo "Skipping: missing NAME"
+		echo "Skipping: missing NAME" >> "$STDOUT_LOG"
 		return
 	fi
 	if [ -z "$ROMPATH" ]; then
-		echo "Skipping: missing PATH"
+		echo "Skipping: missing PATH" >> "$STDOUT_LOG"
 		return
 	fi
 	if [ -z "$SYSTEM" ]; then
-		echo "Skipping: missing SYSTEM"
+		echo "Skipping: missing SYSTEM" >> "$STDOUT_LOG"
 		return
 	fi
 	if [ ! -r "$BASEDIR/config/systems/$SYSTEM" ]; then
-		echo "Skipping: No configuration exists for SYSTEM"
+		echo "Skipping: No configuration exists for SYSTEM" >> "$STDOUT_LOG"
 		return
 	fi
 	# FIXME this warning can have false positives
 	if [ ! -e "$ROMPATH" ]; then
-		echo "Warning: PATH does not exist"
+		echo "Warning: PATH does not exist" >> "$STDOUT_LOG"
 	fi
 
 	unset launcher
@@ -52,10 +56,6 @@ build_desktop_file() {
 	echo "Icon=${SCRIPTNAME}_${SYSTEM}_${NAME}" >> "$OUTPUT"
 	echo "Exec=$launcher $flags $ROMPATH" >> "$OUTPUT"
 	echo "Categories=Game" >> "$OUTPUT"
-
-	#echo "Installing $NAME"
-	#install_icon "$NAME" "$SYSTEM"
-	#install_desktop_file "$OUTPUT"
 }
 
 # Wrapper for a call to build
@@ -80,7 +80,7 @@ build_wrapper() {
 # Usage: clean_wrapper TARGET_SYSTEMS...
 clean_wrapper() {
 	while [ -n "$1" ]; do
-		echo "Removing $DESKTOP_ENTRY_OUTPUT_DIR/$1"
+		echo "Removing $DESKTOP_ENTRY_OUTPUT_DIR/$1" >> "$STDOUT_LOG"
 		rm -rf "${DESKTOP_ENTRY_OUTPUT_DIR:?}/$1"
 		shift
 	done
@@ -91,19 +91,20 @@ clean_wrapper() {
 # help message
 # Usage: help
 help() {
-	echo "Usage: $0 [OPTION]... [TARGET]..."
-	echo "Generate desktop entries for video game roms"
-	echo
-	echo "Targets:"
-	echo "  build                   build desktop entries into $DESKTOP_ENTRY_OUTPUT_DIR"
-	echo "  clean                   remove $DESKTOP_ENTRY_OUTPUT_DIR and its contents (also calls uninstall target)"
-	echo "  install                 install desktop entries into $DESKTOP_ENTRY_INSTALL_DIR"
-	echo "  uninstall               uninstall desktop entries from $DESKTOP_ENTRY_INSTALL_DIR"
-	echo
-	echo "Options"
-	echo "  -h, --help              print this help message and exit"
-	echo "      --icon-dir [DIR]    Specify an icon source directory (default is $ICON_SOURCE_DIR)"
-	echo "  -s, --system [SYSTEM]   Specify a system, or comma-separated list of systems. Default is all systems"
+	echo "Usage: $0 [OPTION]... [TARGET]..." >> "$STDERR_LOG"
+	echo "Generate desktop entries for video game roms" >> "$STDERR_LOG"
+	echo >> "$STDERR_LOG"
+	echo "Targets:" >> "$STDERR_LOG"
+	echo "  build                   build desktop entries into $DESKTOP_ENTRY_OUTPUT_DIR" >> "$STDERR_LOG"
+	echo "  clean                   remove $DESKTOP_ENTRY_OUTPUT_DIR and its contents (also calls uninstall target)" >> "$STDERR_LOG"
+	echo "  install                 install desktop entries into $DESKTOP_ENTRY_INSTALL_DIR" >> "$STDERR_LOG"
+	echo "  uninstall               uninstall desktop entries from $DESKTOP_ENTRY_INSTALL_DIR" >> "$STDERR_LOG"
+	echo >> "$STDERR_LOG"
+	echo "Options" >> "$STDERR_LOG"
+	echo "  -h, --help              print this help message and exit" >> "$STDERR_LOG"
+	echo "      --icon-dir [DIR]    specify an icon source directory (default is $ICON_SOURCE_DIR)" >> "$STDERR_LOG"
+	echo "  -q, --quiet             do not print to stdout" >> "$STDERR_LOG"
+	echo "  -s, --system [SYSTEM]   specify a system, or comma-separated list of systems. Default is all systems" >> "$STDERR_LOG"
 }
 
 # Usage: install_icon NAME SYSTEM
@@ -122,7 +123,7 @@ install_icon() {
 	done
 
 	if [ -z "$ICON_EXTENSION" ]; then
-		echo "Icon does not exist or is not readable. Skipping icon installation"
+		echo "Icon does not exist or is not readable. Skipping icon installation" >> "$STDOUT_LOG"
 		return
 	fi
 
@@ -139,7 +140,7 @@ install_icon() {
 install_wrapper() {
 	while [ -n "$1" ]; do
 		find "$DESKTOP_ENTRY_OUTPUT_DIR/$1" -type f | while read -r file; do
-			echo "Installing $file"
+			echo "Installing $file" >> "$STDOUT_LOG"
 
 			# Install desktop entry
 			# TODO look into using xdg-desktop-menu for install and uninstall
@@ -175,7 +176,7 @@ parse_config() {
 uninstall_wrapper() {
 	while [ -n "$1" ]; do
 		find "$DESKTOP_ENTRY_OUTPUT_DIR/$1" -type f | while read -r file; do
-			echo "Uninstalling $(basename "$file")"
+			echo "Uninstalling $(basename "$file")" >> "$STDOUT_LOG"
 
 			# Remove icons
 			ICON="$(grep "^Icon=" "$file" | cut -d "=" -f 2)"
@@ -192,11 +193,11 @@ uninstall_wrapper() {
 }
 
 # Read arguments
-GETOPT=$(getopt -o 'hs:' --long 'help,icon-dir:,system:' -n "$(basename "$0")" -- "$@")
+GETOPT=$(getopt -o 'hqs:' --long 'help,icon-dir:,quiet,system:' -n "$(basename "$0")" -- "$@")
 
 # Terminate if getopt goes wrong
 if [ $? -ne 0 ]; then
-	echo "Terminating..." >&2
+	echo "Terminating..." >> "$STDERR_LOG"
 	exit 1
 fi
 
@@ -204,7 +205,6 @@ eval set -- "$GETOPT"
 unset GETOPT
 
 while true; do
-	echo "$1"
 	case "$1" in
 		'-h'|'--help')
 			help
@@ -215,6 +215,10 @@ while true; do
 			ICON_SOURCE_DIR="$1"
 			shift
 			continue
+			;;
+		'-q'|'--quiet')
+			STDOUT_LOG=/dev/null
+			shift
 			;;
 		'-s'|'--system')
 			shift
@@ -227,7 +231,7 @@ while true; do
 			break
 			;;
 		*)
-			echo "Internal error!" >&2
+			echo "Internal error!" >> "$STDERR_LOG"
 			exit 1
 			;;
 	esac
@@ -241,38 +245,41 @@ fi
 while [ -n "$1" ]; do
 	case "$1" in
 		build)
+			shift
 			if [ -z "$TARGET_SYSTEMS" ]; then
 				TARGET_SYSTEMS="$(find "$BASEDIR/config" -type f -name 'romlist_*' -exec sh -c 'basename {} | cut -d '_' -f 2' \;)"
 			fi
 			build_wrapper $TARGET_SYSTEMS
-			shift
 			continue
 			;;
 		clean)
+			shift
+			if [ ! -e "$DESKTOP_ENTRY_OUTPUT_DIR" ]; then
+				continue
+			fi
 			if [ -z "$TARGET_SYSTEMS" ]; then
 				TARGET_SYSTEMS="$(ls -1 "$DESKTOP_ENTRY_OUTPUT_DIR")"
 			fi
 			uninstall_wrapper $TARGET_SYSTEMS
 			clean_wrapper $TARGET_SYSTEMS
-			shift
 			continue
 			;;
 		install)
+			shift
 			if [ -z "$TARGET_SYSTEMS" ]; then
 				TARGET_SYSTEMS="$(ls -1 "$DESKTOP_ENTRY_OUTPUT_DIR")"
 			fi
 			install_wrapper $TARGET_SYSTEMS
 			# Workaround to refresh icons
 			touch "$ICON_INSTALL_DIR"
-			shift
 			continue
 			;;
 		uninstall)
+			shift
 			if [ -z "$TARGET_SYSTEMS" ]; then
 				TARGET_SYSTEMS="$(ls -1 "$DESKTOP_ENTRY_OUTPUT_DIR")"
 			fi
 			uninstall_wrapper $TARGET_SYSTEMS
-			shift
 			continue
 			;;
 	esac
