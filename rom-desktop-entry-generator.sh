@@ -59,7 +59,7 @@ build_desktop_file() {
 }
 
 # Wrapper for a call to build
-# Usage: build_wrapper [TARGET_SYSTEMS]...
+# Usage: build_wrapper TARGET_SYSTEMS...
 build_wrapper() {
 	# find all romlist files in config if --system is not specified
 	if [ -z "$1" ]; then
@@ -77,10 +77,11 @@ build_wrapper() {
 }
 
 # empty the output directory
-# Usage: clean_wrapper [TARGET_SYSTEMS]
+# Usage: clean_wrapper TARGET_SYSTEMS...
 clean_wrapper() {
 	while [ -n "$1" ]; do
-		rm -rf "$DESKTOP_ENTRY_OUTPUT_DIR/$1"
+		echo "Removing $DESKTOP_ENTRY_OUTPUT_DIR/$1"
+		rm -rf "${DESKTOP_ENTRY_OUTPUT_DIR:?}/$1"
 		shift
 	done
 
@@ -134,7 +135,7 @@ install_icon() {
 }
 
 # Wrapper for a call to install
-# Usage: install_wrapper [TARGET_SYSTEMS]...
+# Usage: install_wrapper TARGET_SYSTEMS...
 install_wrapper() {
 	while [ -n "$1" ]; do
 		find "$DESKTOP_ENTRY_OUTPUT_DIR/$1" -type f | while read -r file; do
@@ -170,7 +171,7 @@ parse_config() {
 	done < "$CONFIG_PATH"
 }
 
-# Usage: uninstall_wrapper [TARGET_SYSTEMS]...
+# Usage: uninstall_wrapper TARGET_SYSTEMS...
 uninstall_wrapper() {
 	while [ -n "$1" ]; do
 		find "$DESKTOP_ENTRY_OUTPUT_DIR/$1" -type f | while read -r file; do
@@ -217,7 +218,7 @@ while true; do
 			;;
 		'-s'|'--system')
 			shift
-			TARGET_SYSTEMS="$1"
+			TARGET_SYSTEMS="$(echo "$1" | tr ',' ' ')"
 			shift
 			continue
 			;;
@@ -241,30 +242,26 @@ while [ -n "$1" ]; do
 	case "$1" in
 		build)
 			if [ -z "$TARGET_SYSTEMS" ]; then
-				build_wrapper
-			else
-				build_wrapper $(echo "$TARGET_SYSTEMS" | tr ',' ' ')
+				TARGET_SYSTEMS="$(find "$BASEDIR/config" -type f -name 'romlist_*' -exec sh -c 'basename {} | cut -d '_' -f 2' \;)"
 			fi
+			build_wrapper $TARGET_SYSTEMS
 			shift
 			continue
 			;;
 		clean)
 			if [ -z "$TARGET_SYSTEMS" ]; then
-				uninstall_wrapper $(ls -1 "$DESKTOP_ENTRY_OUTPUT_DIR")
-				clean_wrapper $(ls -1 "$DESKTOP_ENTRY_OUTPUT_DIR")
-			else
-				uninstall_wrapper $(echo "$TARGET_SYSTEMS" | tr ',' ' ')
-				clean_wrapper $(echo "$TARGET_SYSTEMS" | tr ',' ' ')
+				TARGET_SYSTEMS="$(ls -1 "$DESKTOP_ENTRY_OUTPUT_DIR")"
 			fi
+			uninstall_wrapper $TARGET_SYSTEMS
+			clean_wrapper $TARGET_SYSTEMS
 			shift
 			continue
 			;;
 		install)
 			if [ -z "$TARGET_SYSTEMS" ]; then
-				install_wrapper $(ls -1 "$DESKTOP_ENTRY_OUTPUT_DIR")
-			else
-				install_wrapper $(echo "$TARGET_SYSTEMS" | tr ',' ' ')
+				TARGET_SYSTEMS="$(ls -1 "$DESKTOP_ENTRY_OUTPUT_DIR")"
 			fi
+			install_wrapper $TARGET_SYSTEMS
 			# Workaround to refresh icons
 			touch "$ICON_INSTALL_DIR"
 			shift
@@ -272,10 +269,9 @@ while [ -n "$1" ]; do
 			;;
 		uninstall)
 			if [ -z "$TARGET_SYSTEMS" ]; then
-				uninstall_wrapper $(ls -1 "$DESKTOP_ENTRY_OUTPUT_DIR")
-			else
-				uninstall_wrapper $(echo "$TARGET_SYSTEMS" | tr ',' ' ')
+				TARGET_SYSTEMS="$(ls -1 "$DESKTOP_ENTRY_OUTPUT_DIR")"
 			fi
+			uninstall_wrapper $TARGET_SYSTEMS
 			shift
 			continue
 			;;
