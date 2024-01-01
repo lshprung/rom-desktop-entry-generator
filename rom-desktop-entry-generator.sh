@@ -38,6 +38,8 @@ build_desktop_file() {
 		echo "Warning: PATH does not exist"
 	fi
 
+	unset launcher
+	unset flags
 	# shellcheck source=/dev/null
 	. "$BASEDIR/config/systems/$SYSTEM"
 
