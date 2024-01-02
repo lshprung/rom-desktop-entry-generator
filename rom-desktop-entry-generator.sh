@@ -8,7 +8,7 @@ STDERR_LOG=/dev/stderr
 BASEDIR="$(dirname "$0")"
 SCRIPTNAME="$(basename "$0" .sh)"
 DESKTOP_ENTRY_OUTPUT_DIR="$BASEDIR/output"
-DESKTOP_ENTRY_INSTALL_DIR="$HOME/.local/share/applications"
+DESKTOP_ENTRY_INSTALL_DIR="$HOME/.local/share/applications/$SCRIPTNAME"
 ICON_SOURCE_DIR="$BASEDIR/icon"
 ICON_INSTALL_DIR="$HOME/.local/share/icons/hicolor"
 
@@ -18,7 +18,7 @@ build_desktop_file() {
 	NAME="$1"
 	ROMPATH="$2"
 	SYSTEM="$3"
-	OUTPUT="$DESKTOP_ENTRY_OUTPUT_DIR/$SYSTEM/${SCRIPTNAME}_${SYSTEM}_${NAME}.desktop"
+	OUTPUT="$DESKTOP_ENTRY_OUTPUT_DIR/$SYSTEM/$NAME.desktop"
 
 	echo "Building $NAME" >> "$STDOUT_LOG"
 
@@ -142,13 +142,15 @@ install_wrapper() {
 		find "$DESKTOP_ENTRY_OUTPUT_DIR/$1" -type f | while read -r file; do
 			echo "Installing $file" >> "$STDOUT_LOG"
 
-			# Install desktop entry
-			# TODO look into using xdg-desktop-menu for install and uninstall
-			install "$file" "$DESKTOP_ENTRY_INSTALL_DIR"
-
-			# Install icon
 			NAME="$(grep "^Name=" "$file" | cut -d "=" -f 2)"
 			SYSTEM="$(basename "$(dirname "$file")")"
+
+			# Install desktop entry
+			# TODO look into using xdg-desktop-menu for install and uninstall
+			mkdir -p "$DESKTOP_ENTRY_INSTALL_DIR/$SYSTEM"
+			install "$file" "$DESKTOP_ENTRY_INSTALL_DIR/$SYSTEM"
+
+			# Install icon
 			install_icon "$NAME" "$SYSTEM"
 		done
 
@@ -185,7 +187,9 @@ uninstall_wrapper() {
 			done
 
 			# Remove the desktop entry
-			rm -f "$DESKTOP_ENTRY_INSTALL_DIR/$(basename "$file")"
+			rm -f "$DESKTOP_ENTRY_INSTALL_DIR/$(basename "$(dirname "$file")")/$(basename "$file")"
+			rmdir --ignore-fail-on-non-empty "$DESKTOP_ENTRY_INSTALL_DIR/$(basename "$(dirname "$file")")"
+			rmdir --ignore-fail-on-non-empty "$DESKTOP_ENTRY_INSTALL_DIR"
 		done
 		
 		shift
@@ -272,6 +276,8 @@ while [ -n "$1" ]; do
 			install_wrapper $TARGET_SYSTEMS
 			# Workaround to refresh icons
 			touch "$ICON_INSTALL_DIR"
+			# Workaround to refresh desktop database
+			touch "$DESKTOP_ENTRY_INSTALL_DIR"
 			continue
 			;;
 		uninstall)
@@ -280,6 +286,8 @@ while [ -n "$1" ]; do
 				TARGET_SYSTEMS="$(ls -1 "$DESKTOP_ENTRY_OUTPUT_DIR")"
 			fi
 			uninstall_wrapper $TARGET_SYSTEMS
+			# Workaround to refresh desktop database
+			touch "$(dirname "$DESKTOP_ENTRY_INSTALL_DIR")"
 			continue
 			;;
 	esac
