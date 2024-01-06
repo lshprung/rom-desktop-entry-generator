@@ -7,6 +7,7 @@ STDERR_LOG=/dev/stderr
 # BASEDIR is used to treat this script as a portable application
 BASEDIR="$(dirname "$0")"
 SCRIPTNAME="$(basename "$0" .sh)"
+CONFIG_DIR=""
 DESKTOP_ENTRY_OUTPUT_DIR="$BASEDIR/output"
 DESKTOP_ENTRY_INSTALL_DIR="$HOME/.local/share/applications/$SCRIPTNAME"
 ICON_SOURCE_DIR="$BASEDIR/icon"
@@ -87,10 +88,21 @@ clean_wrapper() {
 	rmdir --ignore-fail-on-non-empty "$DESKTOP_ENTRY_OUTPUT_DIR"
 }
 
+# checks for config location
+# Usage: get_config_dir
+get_config_dir() {
+	for path in "$HOME/.config/$SCRIPTNAME" "$HOME/.$SCRIPTNAME" "/etc/$SCRIPTNAME"; do
+		if [ -d "$path" ]; then
+			CONFIG_DIR="$path"
+			return
+		fi
+	done
+}
+
 # help message
 # Usage: help
 help() {
-	echo "Usage: $0 [OPTION]... [TARGET]..." >> "$STDERR_LOG"
+	echo "Usage: $0 [OPTION]... TARGET..." >> "$STDERR_LOG"
 	echo "Generate desktop entries for video game roms" >> "$STDERR_LOG"
 	echo >> "$STDERR_LOG"
 	echo "Targets:" >> "$STDERR_LOG"
@@ -100,8 +112,9 @@ help() {
 	echo "  uninstall               uninstall desktop entries from $DESKTOP_ENTRY_INSTALL_DIR" >> "$STDERR_LOG"
 	echo >> "$STDERR_LOG"
 	echo "Options" >> "$STDERR_LOG"
+	echo "  -c, --config            specify a configuration directory (default is $HOME/.config/$SCRIPTNAME)" >> "$STDERR_LOG"
 	echo "  -h, --help              print this help message and exit" >> "$STDERR_LOG"
-	echo "      --icon-dir [DIR]    specify an icon source directory (default is $ICON_SOURCE_DIR)" >> "$STDERR_LOG"
+	echo "  -i, --icon-dir [DIR]    specify an icon source directory (default is $ICON_SOURCE_DIR)" >> "$STDERR_LOG"
 	echo "  -q, --quiet             do not print to stdout" >> "$STDERR_LOG"
 	echo "  -s, --system [SYSTEM]   specify a system, or comma-separated list of systems. Default is all systems" >> "$STDERR_LOG"
 }
@@ -158,7 +171,7 @@ install_wrapper() {
 }
 
 parse_config() {
-	CONFIG_PATH="$1"
+	CONFIG_DIR="$1"
 
 	while read -r line; do
 		# Skip comments and empty lines
@@ -170,7 +183,7 @@ parse_config() {
 		fi
 
 		eval "build_desktop_file $line"
-	done < "$CONFIG_PATH"
+	done < "$CONFIG_DIR"
 }
 
 # Usage: uninstall_wrapper TARGET_SYSTEMS...
@@ -196,7 +209,7 @@ uninstall_wrapper() {
 }
 
 # Read arguments
-GETOPT=$(getopt -o 'hqs:' --long 'help,icon-dir:,quiet,system:' -n "$(basename "$0")" -- "$@")
+GETOPT=$(getopt -o 'c:hi:qs:' --long 'config:,help,icon-dir:,quiet,system:' -n "$(basename "$0")" -- "$@")
 
 # Terminate if getopt goes wrong
 if [ $? -ne 0 ]; then
@@ -209,11 +222,17 @@ unset GETOPT
 
 while true; do
 	case "$1" in
+		'-c'|'--config')
+			shift
+			CONFIG_DIR="$1"
+			shift
+			continue
+			;;
 		'-h'|'--help')
 			help
 			exit
 			;;
-		'--icon-dir')
+		'i'|'--icon-dir')
 			shift
 			ICON_SOURCE_DIR="$1"
 			shift
@@ -239,6 +258,16 @@ while true; do
 			;;
 	esac
 done
+
+# Set CONFIG_DIR if not already set by flags
+if [ -z "$CONFIG_DIR" ]; then
+	get_config_dir
+fi
+# Check that CONFIG_DIR is real
+if [ ! -d "$CONFIG_DIR" ]; then
+	echo "Error: could not load configuration at '$CONFIG_DIR'; directory does not exist" >> "$STDERR_LOG"
+	exit 1
+fi
 
 # By default, build, but do not install
 if [ -z "$1" ]; then

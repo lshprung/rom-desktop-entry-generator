@@ -1,6 +1,0 @@
-# This is an example system script
-# It is a shell script which should define a launcher and optionally any flags
-# Example for an nes system config:
-
-launcher="/usr/bin/nes"
-flags="--fullscreen"

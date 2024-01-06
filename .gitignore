@@ -1,4 +1,5 @@
 *
 !.gitignore
 !rom-desktop-entry-generator.sh
-!config
+!config.template
+!config.template/*
