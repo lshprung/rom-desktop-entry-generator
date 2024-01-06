@@ -39,9 +39,8 @@ build_desktop_file() {
 		echo "Skipping: No configuration exists for SYSTEM" >> "$STDOUT_LOG"
 		return
 	fi
-	# FIXME this warning can have false positives
-	if [ ! -e "$ROMPATH" ]; then
-		echo "Warning: PATH does not exist" >> "$STDOUT_LOG"
+	if ! eval test -e "\"$ROMPATH\""; then
+		echo "Warning: PATH $ROMPATH does not exist" >> "$STDOUT_LOG"
 	fi
 
 	unset launcher
@@ -54,7 +53,7 @@ build_desktop_file() {
 	echo "Type=Application" >> "$OUTPUT"
 	echo "Name=$NAME" >> "$OUTPUT"
 	echo "Icon=${SCRIPTNAME}_${SYSTEM}_${NAME}" >> "$OUTPUT"
-	echo "Exec=$launcher $flags $ROMPATH" >> "$OUTPUT"
+	echo "Exec=$launcher $flags \"$ROMPATH\"" >> "$OUTPUT"
 	echo "Categories=Game" >> "$OUTPUT"
 }
 

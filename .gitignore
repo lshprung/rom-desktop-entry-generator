@@ -1,4 +1,4 @@
-output
-output/*
-icon
-icon/*
+*
+!.gitignore
+!rom-desktop-entry-generator.sh
+!config
