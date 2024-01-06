@@ -63,13 +63,13 @@ build_desktop_file() {
 build_wrapper() {
 	# find all romlist files in config if --system is not specified
 	if [ -z "$1" ]; then
-		find "$BASEDIR/config/" -name 'romlist_*' | while read -r file; do
+		find "$CONFIG_DIR" -name 'romlist_*' | while read -r file; do
 			parse_config "$file"
 		done
 	else
 		while [ -n "$1" ]; do
-			if [ -r "$BASEDIR/config/romlist_$1" ]; then
-				parse_config "$BASEDIR/config/romlist_$1"
+			if [ -r "$CONFIG_DIR/romlist_$1" ]; then
+				parse_config "$CONFIG_DIR/romlist_$1"
 			fi
 			shift
 		done
@@ -279,7 +279,7 @@ while [ -n "$1" ]; do
 		build)
 			shift
 			if [ -z "$TARGET_SYSTEMS" ]; then
-				TARGET_SYSTEMS="$(find "$BASEDIR/config" -type f -name 'romlist_*' -exec sh -c 'basename {} | cut -d '_' -f 2' \;)"
+				TARGET_SYSTEMS="$(find "$CONFIG_DIR" -type f -name 'romlist_*' -exec sh -c 'basename {} | cut -d '_' -f 2' \;)"
 			fi
 			build_wrapper $TARGET_SYSTEMS
 			continue
