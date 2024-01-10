@@ -36,8 +36,8 @@ build_desktop_file() {
 		echo "Skipping: missing SYSTEM" >> "$STDOUT_LOG"
 		return
 	fi
-	if [ ! -r "$BASEDIR/config/systems/$SYSTEM" ]; then
-		echo "Skipping: No configuration exists for SYSTEM" >> "$STDOUT_LOG"
+	if [ ! -r "$(dirname "$CONFIG_DIR")/systems/$SYSTEM" ]; then
+		echo "Skipping: No configuration exists for $SYSTEM" >> "$STDOUT_LOG"
 		return
 	fi
 	if ! eval test -e "\"$ROMPATH\""; then
@@ -47,7 +47,7 @@ build_desktop_file() {
 	unset launcher
 	unset flags
 	# shellcheck source=/dev/null
-	. "$BASEDIR/config/systems/$SYSTEM"
+	. "$(dirname "$CONFIG_DIR")/systems/$SYSTEM"
 
 	mkdir -p "$DESKTOP_ENTRY_OUTPUT_DIR/$SYSTEM"
 	echo "[Desktop Entry]" > "$OUTPUT"
