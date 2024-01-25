@@ -232,7 +232,7 @@ while true; do
 			help
 			exit
 			;;
-		'i'|'--icon-dir')
+		'-i'|'--icon-dir')
 			shift
 			ICON_SOURCE_DIR="$1"
 			shift
